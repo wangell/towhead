@@ -1,7 +1,7 @@
 towhead
 =======
 
-Tag-based file system organization
+Tag-based file system organization using links
 
 Impetus:  I needed to tag images/songs/etc. with multiple tags and still have it work with existing software.
 
