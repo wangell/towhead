@@ -12,9 +12,9 @@ import Data.List.Split
 import System.Environment
 import qualified Data.Map as M
 
-dataDir = "~/code/carbine/dat/"
-structDir = "~/code/carbine/struct/"
-sqlFile = ".carbine.db"
+dataDir = "dat/"
+structDir = "struct/"
+sqlFile = ".towhead.db"
 
 -- Commands---------------------------
 commands :: M.Map String ([String] -> IO())
@@ -43,7 +43,7 @@ spaceCommand (args:[]) = do
 	filesByTag (splitOn "," args)
 ----------------------------------------
 
-initializeCarbine = do
+initializeTowhead = do
 	y <- doesFileExist sqlFile
 	case y of 
 		True -> return ()
@@ -133,13 +133,13 @@ md5File f = do
 	return q
 
 isManaged :: FilePath -> Bool
-isManaged s = (s /= ".carbine") && (not $ isDots s)
+isManaged s = (s /= ".towhead") && (not $ isDots s)
 
 isDots :: String -> Bool
 isDots s = (s == ".") || (s == "..")
 
 main = do
-	initializeCarbine
+	initializeTowhead
 	args <- getArgs
 	if args == [] then error "No command given."
 	else
