@@ -38,6 +38,8 @@ tagCommand (tags:files) = do
 	addTags (splitOn "," tags) files
 
 spaceCommand :: [String] -> IO ()
+spaceCommand [] = do
+	clearStructFolder
 spaceCommand (args:[]) = do
 	clearStructFolder
 	filesByTag (splitOn "," args)
