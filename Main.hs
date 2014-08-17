@@ -26,9 +26,8 @@ commands = M.fromList $
 
 listCommand :: [String] -> IO ()
 listCommand args = do
-	e <- getAllEntries
-	let ts = map (\(x:y:z:[]) -> y) e
-	mapM_ putStrLn (nub ts)
+	xs <- tagList
+	mapM_ putStrLn xs
 
 scanCommand :: [String] -> IO ()
 scanCommand args = if args == [] then scanDataDir dataDir else scanDataDir (head args)
@@ -57,6 +56,13 @@ createFolderStructure :: [String] -> IO ()
 createFolderStructure xs = do
 	let q = zipWith (++) (repeat structDir) xs
 	mapM_ createDirectory q
+
+tagList :: IO [String] 
+tagList = do
+	conn <- connectSqlite3 sqlFile
+	q <- quickQuery' conn "SELECT DISTINCT tag FROM tags" []
+	disconnect conn
+	return $ map fromSql (concat q)
 
 makeDB :: IO ()
 makeDB = do
