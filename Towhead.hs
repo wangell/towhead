@@ -34,8 +34,9 @@ scanCommand :: [String] -> IO ()
 scanCommand args = if args == [] then scanDataDir dataDir else scanDataDir (head args)
 
 tagCommand :: [String] -> IO ()
-tagCommand (tag:f:[]) = do
-	mapM_ (\x -> addTag x f) (splitOn "," tag)
+tagCommand (tags:files) = do
+	addTags (splitOn "," tags) files
+	--mapM_ (\x -> addTag x f) (splitOn "," tag)
 
 spaceCommand :: [String] -> IO ()
 spaceCommand (args:[]) = do
@@ -71,11 +72,12 @@ recordFile x = do
 	commit conn
 	disconnect conn
 
-addTag :: String -> String -> IO ()
-addTag t x = do
+addTags :: [String] -> [String] -> IO ()
+addTags tags files = do
 	conn <- connectSqlite3 sqlFile
-	filehash <- md5File x
-	run conn "INSERT OR IGNORE INTO tags VALUES (?, ?)" [toSql filehash, toSql t]
+	hashedFiles <- mapM md5File files
+	let insSeq = sequence [(map toSql hashedFiles), (map toSql tags)]
+	mapM_ (run conn "INSERT OR IGNORE INTO tags VALUES (?, ?)") insSeq
 	commit conn
 	disconnect conn
 
