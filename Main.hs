@@ -35,11 +35,13 @@ scanCommand args = if args == [] then scanDataDir dataDir else scanDataDir (head
 
 tagCommand :: [String] -> IO ()
 tagCommand (tags:files) = do
-	addTags (splitOn "," tags) files
+	canFiles <- mapM canonicalizePath files
+	addTags (splitOn "," tags) canFiles
 
 spaceCommand :: [String] -> IO ()
 spaceCommand [] = do
 	clearStructFolder
+	defaultView
 spaceCommand (args:[]) = do
 	clearStructFolder
 	filesByTag (splitOn "," args)
@@ -86,6 +88,9 @@ addTags tags files = do
 processEntry (x:y:z:[]) = do
 	createSymbolicLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
 
+processEntryDefault (x:y:[]) = do
+	createSymbolicLink (y) (structDir ++ (takeFileName y))
+
 scanDataDir :: FilePath -> IO ()
 scanDataDir d = do
 	can <- canonicalizePath d
@@ -100,9 +105,13 @@ getEntries t = do
 
 getAllEntries = do
 	conn <- connectSqlite3 sqlFile
- 	q <- quickQuery' conn "SELECT t.*, f.filename from tags AS t JOIN files AS f ON t.md5string=f.md5string" []
+ 	q <- quickQuery' conn "SELECT * from files" []
 	disconnect conn
- 	return $ (map (\(x:y:z:[]) -> [fromSql x, fromSql y, fromSql z]) q :: [[String]])
+ 	return $ (map (\(hash:fname:[]) -> [fromSql hash, fromSql fname]) q :: [[String]])
+
+defaultView = do
+	e <- getAllEntries
+	mapM_ processEntryDefault e
 
 filesByTag t = do
 	e <- mapM getEntries t

@@ -1,4 +1,4 @@
-towhead: Towhead.hs
-	ghc --make Towhead.hs -o towhead
+towhead: Main.hs
+	ghc --make Main.hs -o towhead
 	rm *.o
 	rm *.hi
