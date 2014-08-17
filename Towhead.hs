@@ -64,11 +64,12 @@ makeDB = do
 	commit conn
 	disconnect conn
 
-recordFile :: String -> IO ()
-recordFile x = do
+indexFiles :: [String] -> IO ()
+indexFiles files = do
 	conn <- connectSqlite3 sqlFile
-	filehash <- md5File x
-	run conn "INSERT OR IGNORE INTO files VALUES (?, ?)" [toSql filehash, toSql x]
+	hashedFiles <- mapM md5File files
+	let insSeq = sequence [(map toSql hashedFiles), (map toSql files)]
+	mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
 	commit conn
 	disconnect conn
 
@@ -86,8 +87,9 @@ processEntry (x:y:z:[]) = do
 
 scanDataDir :: FilePath -> IO ()
 scanDataDir d = do
-	f <- getDirectoryContents d
-	mapM_ (recordFile . (d ++)) $ filter (isManaged) f
+	can <- canonicalizePath d
+	f <- getDirectoryContents can
+	indexFiles $ map ((can ++ "/") ++) $ filter (isManaged) f
 
 getEntries t = do
 	conn <- connectSqlite3 sqlFile
