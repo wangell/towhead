@@ -12,7 +12,6 @@ import Data.List.Split
 import System.Environment
 import qualified Data.Map as M
 
-dataDir = "dat/"
 structDir = "struct/"
 sqlFile = ".towhead.db"
 
@@ -22,7 +21,8 @@ commands = M.fromList $
 	[("scan", scanCommand),
 	("space", spaceCommand),
 	("tag", tagCommand),
-	("list", listCommand)]
+	("list", listCommand),
+	("init", initializeTowhead)]
 
 listCommand :: [String] -> IO ()
 listCommand args = do
@@ -30,7 +30,14 @@ listCommand args = do
 	mapM_ putStrLn xs
 
 scanCommand :: [String] -> IO ()
-scanCommand args = if args == [] then scanDataDir dataDir else scanDataDir (head args)
+scanCommand args = do
+	aSpace <- doesFileExist sqlFile
+	case aSpace of
+		True -> 
+			if args == [] 
+			then scanDataDir "." 
+			else scanDataDir (head args)
+		False -> error "No active workspace."
 
 tagCommand :: [String] -> IO ()
 tagCommand (tags:files) = do
@@ -44,13 +51,15 @@ spaceCommand [] = do
 spaceCommand (args:[]) = do
 	clearStructFolder
 	filesByTag (splitOn "," args)
-----------------------------------------
 
-initializeTowhead = do
+initializeTowhead :: [String] -> IO ()
+initializeTowhead args = do
 	y <- doesFileExist sqlFile
 	case y of 
 		True -> return ()
 		False -> makeDB
+
+----------------------------------------
 
 createFolderStructure :: [String] -> IO ()
 createFolderStructure xs = do
@@ -67,9 +76,8 @@ tagList = do
 makeDB :: IO ()
 makeDB = do
 	conn <- connectSqlite3 sqlFile
-	run conn "CREATE TABLE files (md5string VARCHAR(256) NOT NULL UNIQUE, filename VARCHAR(1000))" []
-	commit conn
-	run conn "CREATE TABLE tags (md5string VARCHAR(256) NOT NULL, tag VARCHAR(256), PRIMARY KEY (md5string, tag))" []
+	run conn "CREATE TABLE files (md5string VARCHAR(32) NOT NULL UNIQUE, filename VARCHAR(1000))" []
+	run conn "CREATE TABLE tags (md5string VARCHAR(32) NOT NULL, tag VARCHAR(256), PRIMARY KEY (md5string, tag))" []
 	commit conn
 	disconnect conn
 
@@ -92,10 +100,12 @@ addTags tags files = do
 	disconnect conn
 
 processEntry (x:y:z:[]) = do
-	createSymbolicLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
+	createLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
+	--createSymbolicLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
 
 processEntryDefault (x:y:[]) = do
-	createSymbolicLink (y) (structDir ++ (takeFileName y))
+	createLink (y) (structDir ++ (takeFileName y))
+	--createSymbolicLink (y) (structDir ++ (takeFileName y))
 
 scanDataDir :: FilePath -> IO ()
 scanDataDir d = do
@@ -159,7 +169,6 @@ isDots :: String -> Bool
 isDots s = (s == ".") || (s == "..")
 
 main = do
-	initializeTowhead
 	args <- getArgs
 	if args == [] then error "No command given."
 	else
