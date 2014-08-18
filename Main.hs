@@ -15,6 +15,10 @@ import qualified Data.Map as M
 structDir = "struct/"
 sqlFile = ".towhead.db"
 
+data FileEntry = FileEntry { hash :: String
+							,filePath :: String
+							,tag :: String } deriving (Show)
+
 -- Commands---------------------------
 commands :: M.Map String ([String] -> IO())
 commands = M.fromList $ 
@@ -22,7 +26,12 @@ commands = M.fromList $
 	("space", spaceCommand),
 	("tag", tagCommand),
 	("list", listCommand),
-	("init", initializeTowhead)]
+	("init", initializeTowhead),
+	("alias", aliasCommand)]
+
+aliasCommand :: [String] -> IO ()
+aliasCommand [] = printUsage
+aliasCommand (alias:structure) = putStrLn ("Created '" ++ alias ++ "' alias.")
 
 listCommand :: [String] -> IO ()
 listCommand args = do
@@ -94,7 +103,7 @@ indexFiles :: [String] -> IO ()
 indexFiles files = do
 	conn <- connectSqlite3 sqlFile
 	hashedFiles <- mapM md5File files
-	let insSeq = zipWith (\x -> \y  -> [x,y]) (map toSql hashedFiles) (map toSql files)
+	let insSeq = zipWith (curry (\(x,y) -> [x,y]))  (map toSql hashedFiles) (map toSql files)
 	mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
 	commit conn
 	disconnect conn
@@ -136,16 +145,19 @@ getEntries t = do
 	disconnect conn
  	return $ (map (\(x:y:z:[]) -> [fromSql x, fromSql y, fromSql z]) q :: [[String]])
 
+getAllEntries :: IO [[String]]
 getAllEntries = do
 	conn <- connectSqlite3 sqlFile
  	q <- quickQuery' conn "SELECT * from files" []
 	disconnect conn
  	return $ (map (\(hash:fname:[]) -> [fromSql hash, fromSql fname]) q :: [[String]])
 
+defaultView :: IO ()
 defaultView = do
 	e <- getAllEntries
 	mapM_ processEntryDefault e
 
+filesByTagI :: [[String]] -> IO ()
 filesByTagI t = do
 	e <- mapM getEntriesIntersect t
 	let ts = map (\(x:y:z:[]) -> y) (concat e)
