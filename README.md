@@ -1,7 +1,7 @@
 towhead
 =======
 
-Tag-based file system organization using links
+Graph/tag-based file system organization using links. (Right now uses SQLite as backend, plans to use Graph database in the future potentially...)
 
 Impetus:  I needed to tag images/songs/etc. with multiple tags and still have it work with existing software.
 
