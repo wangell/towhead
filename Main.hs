@@ -26,8 +26,13 @@ commands = M.fromList $
 
 listCommand :: [String] -> IO ()
 listCommand args = do
-	xs <- tagList
-	mapM_ putStrLn xs
+	if args == [] then do
+		xs <- tagList "./"
+		mapM_ putStrLn xs
+	else do
+		canPath <- canonicalizePath (head args)
+		xs <- tagList canPath
+		mapM_ putStrLn xs
 
 scanCommand :: [String] -> IO ()
 scanCommand args = do
@@ -70,9 +75,9 @@ createFolderStructure xs = do
 	let q = zipWith (++) (repeat structDir) xs
 	mapM_ createDirectory q
 
-tagList :: IO [String] 
-tagList = do
-	conn <- connectSqlite3 sqlFile
+tagList :: FilePath -> IO [String] 
+tagList dir = do
+	conn <- connectSqlite3 (dir ++ "/" ++ sqlFile)
 	q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
 	disconnect conn
 	return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
@@ -194,7 +199,7 @@ printUsage = do
 	putStrLn "\ttowhead tag <comma delimited list of tags> <space delimited list of files> - tags each file with the list of tags."
 	putStrLn "\ttowhead space - creates the default workspace view (union of all tags)"
 	putStrLn "\ttowhead space [tag list delimited by commas] - creates workspace union of all tags, tags joined by a '.' will create an intersection"
-	putStrLn "\ttowhead list - lists all tags in the current workspace"
+	putStrLn "\ttowhead list [directory] - lists all tags in the current/specified workspace"
 	putStrLn ""
 
 main = do
