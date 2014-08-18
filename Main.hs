@@ -40,7 +40,11 @@ aliasCommand [] = printUsage
 aliasCommand (alias:structure) = putStrLn ("Created '" ++ alias ++ "' alias.")
 
 connectedCommand :: [String] -> IO ()
-connectedCommand args = putStrLn "Not implemented"
+connectedCommand [] = printUsage
+connectedCommand args = do
+	xs <- connectedList (head args)
+	putStrLn $ "# of tags connected to " ++ (head args) ++ " :"
+	mapM_ (putStrLn . ("\t" ++ )) xs
 
 listCommand :: [String] -> IO ()
 listCommand args = do

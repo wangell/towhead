@@ -27,12 +27,21 @@ md5File f = do
     let q = concat $ map (\x -> showHex x "") $ B.unpack $ C.hash fc
     return q
 
+connectedList :: String -> IO [String]
+connectedList tag = do
+	--towDb <- findTowhead "."
+	--conn <- connectSqlite3 (towDb ++ "/" ++ sqlFile)
+	conn <- connectSqlite3 sqlFile
+	q <- quickQuery' conn "SELECT parent.tag, COUNT(parent.tag) FROM tags LEFT JOIN tags AS parent ON tags.md5string = parent.md5string WHERE tags.tag = ? AND parent.tag != ? GROUP BY parent.tag ORDER BY COUNT(parent.tag) DESC" [toSql tag, toSql tag]
+	disconnect conn
+	return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
+
 tagList :: FilePath -> IO [String]
 tagList dir = do
-    conn <- connectSqlite3 (dir ++ "/" ++ sqlFile)
-    q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
-    disconnect conn
-    return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
+	conn <- connectSqlite3 (dir ++ "/" ++ sqlFile)
+	q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
+	disconnect conn
+	return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
 
 removeFromIndex :: [String] -> IO ()
 removeFromIndex files = do
