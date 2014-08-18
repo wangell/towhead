@@ -37,7 +37,7 @@ scanCommand args = do
 			if args == [] 
 			then scanDataDir "." 
 			else scanDataDir (head args)
-		False -> error "No active workspace."
+		False -> error "No active workspace.  To create a workspace in this directory execute 'towhead init <workspace-name>'"
 
 tagCommand :: [String] -> IO ()
 tagCommand (tags:files) = do
@@ -186,11 +186,24 @@ isManaged s = (s /= ".towhead") && (not $ isDots s)
 isDots :: String -> Bool
 isDots s = (s == ".") || (s == "..")
 
+printUsage :: IO ()
+printUsage = do
+	putStrLn "Usage:"
+	putStrLn "\ttowhead init <workspace-name>"
+	putStrLn "\ttowhead scan [directory] - creates index of the directory. If no directory is specified, uses the current directory."
+	putStrLn "\ttowhead tag <comma delimited list of tags> <space delimited list of files> - tags each file with the list of tags."
+	putStrLn "\ttowhead space - creates the default workspace view (union of all tags)"
+	putStrLn "\ttowhead space [tag list delimited by commas] - creates workspace union of all tags, tags joined by a '.' will create an intersection"
+	putStrLn ""
+
 main = do
 	args <- getArgs
-	if args == [] then error "No command given."
-	else
-		let com = M.lookup (head args) commands in
+	if args == [] then do
+		putStrLn "No command given."
+		printUsage
+	else let com = M.lookup (head args) commands in
 			case com of
 				Just action -> action (tail args)
-				Nothing -> error "Invalid command"
+				Nothing -> do
+					putStrLn "Invalid command"
+					printUsage
