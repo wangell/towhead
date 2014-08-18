@@ -73,9 +73,9 @@ createFolderStructure xs = do
 tagList :: IO [String] 
 tagList = do
 	conn <- connectSqlite3 sqlFile
-	q <- quickQuery' conn "SELECT DISTINCT tag FROM tags" []
+	q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
 	disconnect conn
-	return $ map fromSql (concat q)
+	return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
 
 makeDB :: IO ()
 makeDB = do
@@ -189,11 +189,12 @@ isDots s = (s == ".") || (s == "..")
 printUsage :: IO ()
 printUsage = do
 	putStrLn "Usage:"
-	putStrLn "\ttowhead init <workspace-name>"
+	putStrLn "\ttowhead init <workspace-name> - initializes a workspace in the current directory"
 	putStrLn "\ttowhead scan [directory] - creates index of the directory. If no directory is specified, uses the current directory."
 	putStrLn "\ttowhead tag <comma delimited list of tags> <space delimited list of files> - tags each file with the list of tags."
 	putStrLn "\ttowhead space - creates the default workspace view (union of all tags)"
 	putStrLn "\ttowhead space [tag list delimited by commas] - creates workspace union of all tags, tags joined by a '.' will create an intersection"
+	putStrLn "\ttowhead list - lists all tags in the current workspace"
 	putStrLn ""
 
 main = do
