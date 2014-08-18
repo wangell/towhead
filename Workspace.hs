@@ -58,6 +58,13 @@ filesByTagI t = do
 	createFolderStructure (nub ts)
 	mapM_ processEntry (concat e)
 
+filesByTagU :: [[String]] -> IO ()
+filesByTagU t = do
+	e <- mapM getEntriesUnion t
+	let ts = map (\(x:y:z:[]) -> y) (concat e)
+	createFolderStructure (nub ts)
+	mapM_ processEntry (concat e)
+
 filesByTag t = do
 	e <- mapM getEntries t
 	let ts = map (\(x:y:z:[]) -> y) (concat e)

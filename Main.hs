@@ -66,10 +66,12 @@ spaceCommand [] = do
 spaceCommand (args:[]) = do
 	clearStructFolder
 	let fullQ = splitOn "," args
-	let uQ = filter ('.' `notElem`) fullQ
+	let fQ = filter ('+' `notElem`) $ filter ('.' `notElem`) fullQ
 	let iQ = filter ('.' `elem`) fullQ
-	filesByTag uQ
+	let uQ = filter ('+' `elem`) fullQ
+	filesByTag fQ
 	filesByTagI $ map (splitOn ".") iQ
+	filesByTagU $ map (splitOn "+") uQ
 
 initializeTowhead :: [String] -> IO ()
 initializeTowhead args = do
