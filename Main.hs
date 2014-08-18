@@ -50,7 +50,11 @@ spaceCommand [] = do
 	defaultView
 spaceCommand (args:[]) = do
 	clearStructFolder
-	filesByTag (splitOn "," args)
+	let fullQ = splitOn "," args
+	let uQ = filter ('.' `notElem`) fullQ
+	let iQ = filter ('.' `elem`) fullQ
+	filesByTag uQ
+	filesByTagI $ map (splitOn ".") iQ
 
 initializeTowhead :: [String] -> IO ()
 initializeTowhead args = do
@@ -113,6 +117,14 @@ scanDataDir d = do
 	f <- getDirectoryContents can
 	indexFiles $ map ((can ++ "/") ++) $ filter (isManaged) f
 
+getEntriesIntersect t = do
+	conn <- connectSqlite3 sqlFile
+	let baseQuery = "SELECT t.md5string, f.filename FROM tags AS t JOIN files AS f ON t.md5string = f.md5string WHERE t.tag = ?"
+	let compoundQuery = concat $ intersperse " INTERSECT " (replicate (length t) baseQuery)
+ 	q <- quickQuery' conn compoundQuery (map toSql t)
+	disconnect conn
+ 	return $ (map (\(hash:fname:[]) -> [fromSql hash, (concat $ intersperse "." t), fromSql fname]) q :: [[String]])
+
 getEntries t = do
 	conn <- connectSqlite3 sqlFile
  	q <- quickQuery' conn "SELECT t.*, f.filename from tags AS t JOIN files AS f ON t.md5string=f.md5string WHERE t.tag = ?" [toSql t]
@@ -128,6 +140,12 @@ getAllEntries = do
 defaultView = do
 	e <- getAllEntries
 	mapM_ processEntryDefault e
+
+filesByTagI t = do
+	e <- mapM getEntriesIntersect t
+	let ts = map (\(x:y:z:[]) -> y) (concat e)
+	createFolderStructure (nub ts)
+	mapM_ processEntry (concat e)
 
 filesByTag t = do
 	e <- mapM getEntries t
