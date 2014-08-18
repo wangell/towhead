@@ -15,6 +15,7 @@ isManaged s = (s /= ".towhead.db") && (not $ isDots s) && (s /= ".dat")
 isDots :: String -> Bool
 isDots s = (s == ".") || (s == "..")
 
+--Fix this, it's very dangerous
 clearDirectory :: FilePath -> IO ()
 clearDirectory f = do
     isDir <- doesDirectoryExist f
@@ -30,6 +31,7 @@ clearDirectory f = do
         False -> do
             removeFile f
 
+--Fix this, it's very dangerous
 clearStructFolder :: IO ()
 clearStructFolder = do
 	towDb <- findTowhead "."
