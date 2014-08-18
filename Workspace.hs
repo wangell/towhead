@@ -9,6 +9,8 @@ import System.Directory
 import TelescopeParser
 import Storage
 
+data TagOp = Intersect | Union | Normal
+
 isManaged :: FilePath -> Bool
 isManaged s = (s /= ".towhead.db") && (not $ isDots s) && (s /= ".dat")
 
@@ -55,25 +57,29 @@ createFolderStructure xs = do
 	let q = zipWith (++) (repeat (canPath ++ "/")) xs
 	mapM_ createDirectory q
 
-filesByTagI :: [[String]] -> IO ()
-filesByTagI t = do
-	e <- mapM getEntriesIntersect t
+--filesByTagOp :: TagOp -> [[String]] -> IO ()
+--filesByTagOp Intersect t = filesByTagI t
+--filesByTagOp Union t = filesByTagU t
+--filesByTagOp Normal t = filesByTag t
+
+linkFiles e = do
 	let ts = map (\(x:y:z:[]) -> y) (concat e)
 	createFolderStructure (nub ts)
 	mapM_ processEntry (concat e)
+
+filesByTagI :: [[String]] -> IO ()
+filesByTagI t = do
+	e <- mapM getEntriesIntersect t
+	linkFiles e
 
 filesByTagU :: [[String]] -> IO ()
 filesByTagU t = do
 	e <- mapM getEntriesUnion t
-	let ts = map (\(x:y:z:[]) -> y) (concat e)
-	createFolderStructure (nub ts)
-	mapM_ processEntry (concat e)
+	linkFiles e
 
 filesByTag t = do
 	e <- mapM getEntries t
-	let ts = map (\(x:y:z:[]) -> y) (concat e)
-	createFolderStructure (nub ts)
-	mapM_ processEntry (concat e)
+	linkFiles e
 
 createSpace :: [TelescopeTree] -> [String] -> IO ()
 createSpace ((TelescopeLeaf (TelescopeTag t)):[]) baseTag = do

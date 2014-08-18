@@ -34,14 +34,24 @@ tagList dir = do
     disconnect conn
     return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
 
+removeFromIndex :: [String] -> IO ()
+removeFromIndex files = do
+	towDb <- findTowhead "."
+	conn <- connectSqlite3 towDb
+	hashedFiles <- mapM md5File files
+	mapM_ (run conn "DELETE FROM files WHERE md5string = ?") (map (\x -> [toSql x]) hashedFiles)
+	mapM_ (run conn "DELETE FROM tags WHERE md5string = ?") (map (\x -> [toSql x]) hashedFiles)
+	commit conn
+	disconnect conn
+
 indexFiles :: [String] -> IO ()
 indexFiles files = do
-    conn <- connectSqlite3 sqlFile
-    hashedFiles <- mapM md5File files
-    let insSeq = zipWith (curry (\(x,y) -> [x,y]))  (map toSql hashedFiles) (map toSql files)
-    mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
-    commit conn
-    disconnect conn
+	conn <- connectSqlite3 sqlFile
+	hashedFiles <- mapM md5File files
+	let insSeq = zipWith (curry (\(x,y) -> [x,y]))  (map toSql hashedFiles) (map toSql files)
+	mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
+	commit conn
+	disconnect conn
 
 addTags :: [String] -> [String] -> IO ()
 addTags tags files = do

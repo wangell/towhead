@@ -26,7 +26,14 @@ commands = M.fromList $
 	("list", listCommand),
 	("init", initializeTowhead),
 	("alias", aliasCommand),
-	("connected", connectedCommand)]
+	("connected", connectedCommand),
+	("rm", removeCommand)]
+
+removeCommand :: [String] -> IO ()
+removeCommand [] = printUsage
+removeCommand files = do
+	canFiles <- mapM canonicalizePath files
+	removeFromIndex canFiles
 
 aliasCommand :: [String] -> IO ()
 aliasCommand [] = printUsage
