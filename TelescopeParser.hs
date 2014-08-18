@@ -1,4 +1,4 @@
-module Telescope where
+module TelescopeParser where
 
 import qualified Data.ByteString.Char8 as B
 import Data.Attoparsec.ByteString.Char8 as AB
@@ -8,13 +8,13 @@ import Control.Monad
 import Control.Applicative
 
 data TelescopeTag = TelescopeTag B.ByteString deriving (Eq)
-data TelescopeTree = TelescopeTree TelescopeTag [TelescopeTree] deriving (Eq)
+data TelescopeTree = TelescopeNode TelescopeTag [TelescopeTree] | TelescopeLeaf TelescopeTag deriving (Show, Eq)
 
 instance Show TelescopeTag where
 	show (TelescopeTag bs) = show bs
 
-instance Show TelescopeTree where
-	show (TelescopeTree tag t) = if t == [] then show tag else (show tag) ++ "(" ++ (concat $ intersperse "," $ map show t) ++ ")"
+--instance Show TelescopeTree where
+	--show (TelescopeTree tag t) = if t == [] then show tag else (show tag) ++ "(" ++ (concat $ intersperse "," $ map show t) ++ ")"
 
 isAcceptableChar :: Char -> Bool
 isAcceptableChar c = (isAlpha_ascii c) || (c == '.')
@@ -31,11 +31,11 @@ parseTree =
 		char '('
 		t <- parseTree `sepBy` (char ',')
 		char ')'
-		return $ TelescopeTree e t
+		return $ TelescopeNode e t
 	) <|>
 	(do
 		e <- parseTag
-		return $ TelescopeTree e []
+		return $ TelescopeLeaf e
 	)
 
 parseStmt :: Parser [TelescopeTree]
