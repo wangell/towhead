@@ -9,10 +9,8 @@ import System.Directory
 import TelescopeParser
 import Storage
 
-structDir = "struct/"
-
 isManaged :: FilePath -> Bool
-isManaged s = (s /= ".towhead") && (not $ isDots s)
+isManaged s = (s /= ".towhead.db") && (not $ isDots s) && (s /= ".dat")
 
 isDots :: String -> Bool
 isDots s = (s == ".") || (s == "..")
@@ -34,22 +32,26 @@ clearDirectory f = do
 
 clearStructFolder :: IO ()
 clearStructFolder = do
-    q <- getDirectoryContents structDir
-    let r = filter (isManaged) q
-    mapM_ (clearDirectory . ((structDir ++ "/") ++)) r
+	towDb <- findTowhead "."
+	setCurrentDirectory (takeDirectory towDb)
+	canPath <- canonicalizePath "."
+	q <- getDirectoryContents canPath
+	let r = filter (isManaged) q
+	mapM_ (clearDirectory . ((canPath ++ "/") ++)) r
 
 processEntry (x:y:z:[]) = do
-    createLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
-    --createSymbolicLink (z) (structDir ++ y ++ "/" ++ (takeFileName z))
+	canPath <- canonicalizePath "."
+	createLink (z) (canPath ++ "/" ++ y ++ "/" ++ (takeFileName z))
 
 processEntryDefault (x:y:[]) = do
-    createLink (y) (structDir ++ (takeFileName y))
-    --createSymbolicLink (y) (structDir ++ (takeFileName y))
+	canPath <- canonicalizePath "."
+	createLink (y) (canPath ++ "/" ++ (takeFileName y))
 
 createFolderStructure :: [String] -> IO ()
 createFolderStructure xs = do
-    let q = zipWith (++) (repeat structDir) xs
-    mapM_ createDirectory q
+	canPath <- canonicalizePath "."
+	let q = zipWith (++) (repeat (canPath ++ "/")) xs
+	mapM_ createDirectory q
 
 filesByTagI :: [[String]] -> IO ()
 filesByTagI t = do
@@ -77,5 +79,7 @@ createSpace ((TelescopeLeaf (TelescopeTag t)):[]) baseTag = do
     filesByTagI [((BC.unpack t):baseTag)]
 
 createSpaceHelper :: TelescopeTree -> [String] -> IO ()
+createSpaceHelper (TelescopeNode (TelescopeTag t) children) baseTag = do
+    filesByTagI [((BC.unpack t):baseTag)]
 createSpaceHelper (TelescopeLeaf (TelescopeTag t)) baseTag = do
     filesByTagI [((BC.unpack t):baseTag)]

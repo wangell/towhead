@@ -1,12 +1,9 @@
 import Data.List
-import Numeric
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 import System.Directory
 import System.Posix.Files
 import System.FilePath.Posix
-import Database.HDBC
-import Database.HDBC.Sqlite3
 import Crypto.Hash.MD5 as C
 import Data.Convertible
 import Data.List.Split
@@ -28,11 +25,15 @@ commands = M.fromList $
 	("tag", tagCommand),
 	("list", listCommand),
 	("init", initializeTowhead),
-	("alias", aliasCommand)]
+	("alias", aliasCommand),
+	("connected", connectedCommand)]
 
 aliasCommand :: [String] -> IO ()
 aliasCommand [] = printUsage
 aliasCommand (alias:structure) = putStrLn ("Created '" ++ alias ++ "' alias.")
+
+connectedCommand :: [String] -> IO ()
+connectedCommand args = putStrLn "Not implemented"
 
 listCommand :: [String] -> IO ()
 listCommand args = do
@@ -82,31 +83,6 @@ initializeTowhead args = do
 
 ----------------------------------------
 
-tagList :: FilePath -> IO [String] 
-tagList dir = do
-	conn <- connectSqlite3 (dir ++ "/" ++ sqlFile)
-	q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
-	disconnect conn
-	return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
-
-indexFiles :: [String] -> IO ()
-indexFiles files = do
-	conn <- connectSqlite3 sqlFile
-	hashedFiles <- mapM md5File files
-	let insSeq = zipWith (curry (\(x,y) -> [x,y]))  (map toSql hashedFiles) (map toSql files)
-	mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
-	commit conn
-	disconnect conn
-
-addTags :: [String] -> [String] -> IO ()
-addTags tags files = do
-	conn <- connectSqlite3 sqlFile
-	hashedFiles <- mapM md5File files
-	let insSeq = sequence [(map toSql hashedFiles), (map toSql tags)]
-	mapM_ (run conn "INSERT OR IGNORE INTO tags VALUES (?, ?)") insSeq
-	commit conn
-	disconnect conn
-
 scanDataDir :: FilePath -> IO ()
 scanDataDir d = do
 	can <- canonicalizePath d
@@ -118,12 +94,6 @@ defaultView = do
 	e <- getAllEntries
 	mapM_ processEntryDefault e
 
-md5File :: FilePath -> IO String
-md5File f = do
-	fc <- B.readFile (f)
-	let q = concat $ map (\x -> showHex x "") $ B.unpack $ C.hash fc
-	return q
-
 printUsage :: IO ()
 printUsage = do
 	putStrLn "Usage:"
@@ -133,6 +103,7 @@ printUsage = do
 	putStrLn "\ttowhead space - creates the default workspace view (union of all tags)"
 	putStrLn "\ttowhead space [tag list delimited by commas] - creates workspace union of all tags, tags joined by a '.' will create an intersection"
 	putStrLn "\ttowhead list [directory] - lists all tags in the current/specified workspace"
+	putStrLn "\ttowhead connected [tag] - lists all tags that share the given tag pattern"
 	putStrLn ""
 
 main = do

@@ -3,8 +3,55 @@ module Storage where
 import Database.HDBC
 import Database.HDBC.Sqlite3
 import Data.List
+import Crypto.Hash.MD5 as C
+import qualified Data.ByteString as B
+import Numeric
+import System.Directory
 
 sqlFile = ".towhead.db"
+
+findTowhead :: FilePath -> IO String
+findTowhead dir = do
+	canPath <- canonicalizePath dir
+	if canPath == "/home"
+	then error "Couldn't find Towhead db"
+	else do
+		f <- doesFileExist (canPath ++ "/" ++ sqlFile)
+		case f of
+			True -> return (canPath ++ "/" ++ sqlFile)
+			False -> findTowhead (canPath ++ "/..")
+
+md5File :: FilePath -> IO String
+md5File f = do
+    fc <- B.readFile (f)
+    let q = concat $ map (\x -> showHex x "") $ B.unpack $ C.hash fc
+    return q
+
+tagList :: FilePath -> IO [String]
+tagList dir = do
+    conn <- connectSqlite3 (dir ++ "/" ++ sqlFile)
+    q <- quickQuery' conn "SELECT tag, COUNT(tag) FROM tags GROUP BY tag ORDER BY COUNT(tag) DESC" []
+    disconnect conn
+    return $ map (\(tag:count:[]) -> ((fromSql tag) ++ " - " ++ (fromSql count))) q
+
+indexFiles :: [String] -> IO ()
+indexFiles files = do
+    conn <- connectSqlite3 sqlFile
+    hashedFiles <- mapM md5File files
+    let insSeq = zipWith (curry (\(x,y) -> [x,y]))  (map toSql hashedFiles) (map toSql files)
+    mapM_ (run conn "INSERT OR IGNORE INTO files VALUES (?, ?)") insSeq
+    commit conn
+    disconnect conn
+
+addTags :: [String] -> [String] -> IO ()
+addTags tags files = do
+	towDb <- findTowhead "."
+	conn <- connectSqlite3 towDb
+	hashedFiles <- mapM md5File files
+	let insSeq = sequence [(map toSql hashedFiles), (map toSql tags)]
+	mapM_ (run conn "INSERT OR IGNORE INTO tags VALUES (?, ?)") insSeq
+	commit conn
+	disconnect conn
 
 makeDB :: IO ()
 makeDB = do
