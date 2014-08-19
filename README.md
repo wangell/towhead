@@ -7,6 +7,12 @@ Graph/tag-based file system organization using links. (Right now uses SQLite as 
 
 Impetus:  I needed to tag images/songs/etc. with multiple tags and still have it work with existing software.
 
+
+Installation
+------------
+
+Clone the repo and execute `cabal install`
+
 Usage
 -----
 
