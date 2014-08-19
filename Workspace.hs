@@ -8,14 +8,14 @@ import System.FilePath.Posix
 import System.Directory
 import TelescopeParser
 import Storage
+import Utility
 
 data TagOp = Intersect | Union | Normal
 
-isManaged :: FilePath -> Bool
-isManaged s = (s /= ".towhead.db") && (not $ isDots s) && (s /= ".dat")
-
-isDots :: String -> Bool
-isDots s = (s == ".") || (s == "..")
+defaultView :: IO ()
+defaultView = do
+	e <- getAllEntries
+	mapM_ processEntryDefault e
 
 --Fix this, it's very dangerous
 clearDirectory :: FilePath -> IO ()

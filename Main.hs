@@ -85,25 +85,7 @@ spaceCommand (args:[]) = do
 	filesByTagI $ map (splitOn ".") iQ
 	filesByTagU $ map (splitOn "+") uQ
 
-initializeTowhead :: [String] -> IO ()
-initializeTowhead args = do
-	y <- doesFileExist sqlFile
-	case y of 
-		True -> return ()
-		False -> makeDB
-
 ----------------------------------------
-
-scanDataDir :: FilePath -> IO ()
-scanDataDir d = do
-	can <- canonicalizePath d
-	f <- getDirectoryContents can
-	indexFiles $ map ((can ++ "/") ++) $ filter (isManaged) f
-
-defaultView :: IO ()
-defaultView = do
-	e <- getAllEntries
-	mapM_ processEntryDefault e
 
 printUsage :: IO ()
 printUsage = do

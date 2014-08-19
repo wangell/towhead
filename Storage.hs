@@ -1,14 +1,28 @@
 module Storage where
 
-import Database.HDBC
-import Database.HDBC.Sqlite3
 import Data.List
-import Crypto.Hash.MD5 as C
 import qualified Data.ByteString as B
 import Numeric
 import System.Directory
+import Database.HDBC
+import Database.HDBC.Sqlite3
+import Crypto.Hash.MD5 as C
+import Utility
 
 sqlFile = ".towhead.db"
+
+initializeTowhead :: [String] -> IO ()
+initializeTowhead args = do
+	y <- doesFileExist sqlFile
+	case y of
+		True -> return ()
+		False -> makeDB
+
+scanDataDir :: FilePath -> IO ()
+scanDataDir d = do
+	can <- canonicalizePath d
+	f <- getDirectoryContents can
+	indexFiles $ map ((can ++ "/") ++) $ filter (isManaged) f
 
 findTowhead :: FilePath -> IO String
 findTowhead dir = do
