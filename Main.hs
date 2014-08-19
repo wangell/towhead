@@ -27,7 +27,13 @@ commands = M.fromList $
 	("init", initializeTowhead),
 	("alias", aliasCommand),
 	("connected", connectedCommand),
-	("rm", removeCommand)]
+	("rm", removeCommand),
+	("detag", detagCommand)]
+
+detagCommand :: [String] -> IO ()
+detagCommand (tags:files) = do
+	canFiles <- mapM canonicalizePath files
+	removeTags (splitOn "," tags) canFiles
 
 removeCommand :: [String] -> IO ()
 removeCommand [] = printUsage

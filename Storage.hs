@@ -76,6 +76,16 @@ indexFiles files = do
 	commit conn
 	disconnect conn
 
+removeTags :: [String] -> [String] -> IO ()
+removeTags tags files = do
+	towDb <- findTowhead "."
+	conn <- connectSqlite3 towDb
+	hashedFiles <- mapM md5File files
+	let insSeq = sequence [(map toSql hashedFiles), (map toSql tags)]
+	mapM_ (run conn "DELETE FROM tags WHERE md5string = ? AND tag = ?") insSeq
+	commit conn
+	disconnect conn
+
 addTags :: [String] -> [String] -> IO ()
 addTags tags files = do
 	towDb <- findTowhead "."
