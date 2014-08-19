@@ -36,12 +36,16 @@ clearDirectory f = do
 --Fix this, it's very dangerous
 clearStructFolder :: IO ()
 clearStructFolder = do
-	towDb <- findTowhead "."
-	setCurrentDirectory (takeDirectory towDb)
+	--towDb <- findTowhead "."
+	--setCurrentDirectory (takeDirectory towDb)
 	canPath <- canonicalizePath "."
-	q <- getDirectoryContents canPath
-	let r = filter (isManaged) q
-	mapM_ (clearDirectory . ((canPath ++ "/") ++)) r
+	isRootFolder <- doesFileExist (canPath ++ "/" ++ ".towhead.db")
+	case isRootFolder of
+		True -> do
+			q <- getDirectoryContents canPath
+			let r = filter (isManaged) q
+			mapM_ (clearDirectory . ((canPath ++ "/") ++)) r
+		False -> error "Error: Trying to clear a workspace outside of the root folder"
 
 processEntry (x:y:z:[]) = do
 	canPath <- canonicalizePath "."
